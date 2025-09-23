@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyLoom - Python Web IDE</title>
+    <link rel="icon" type="image/x-icon" href="/images/PyloomIcon_Round.png">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=JetBrains+Mono:wght@400;600&family=Source+Code+Pro:wght@400;600&family=Ubuntu+Mono:wght@400;700&family=Inconsolata:wght@400;600&family=Share+Tech+Mono&family=VT323&family=Overpass+Mono:wght@400;600&family=Press+Start+2P&family=Courier+Prime:wght@400;700&family=Space+Mono:wght@400;700&family=Anonymous+Pro&family=Roboto+Mono:wght@400;700&family=PT+Mono&family=M+PLUS+1+Code&family=Major+Mono+Display&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Roboto+Mono:wght@400;700&family=Anonymous+Pro:wght@400;700&family=Cousine:wght@400;700&family=Nova+Mono&display=swap" rel="stylesheet">
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/theme/eclipse.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/theme/solarized.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/theme/ambiance.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/theme/blackboard.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/theme/base16-dark.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/theme/base16-light.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/theme/mdn-like.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/theme/material.min.css">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            padding: 15px 20px;
+            text-align: center;
+            font-family: 'Fira Code', monospace;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px 20px;
+            justify-content: center;
+            align-items: center;
+        }
+        #filename, select {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: none;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.95rem;
+            box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.4);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        #filename:focus, select:focus {
+            transform: scale(1.02);
+        }
+        button, label.choose-file {
+            padding: 10px 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.25s ease;
+            display: inline-block;
+            background-color: #6272a4;
+            color: #e0e0e0;
+        }
+        button:hover, label.choose-file:hover, select:hover {
+            transform: translateY(-2px) scale(1.02);
+        }
+        input[type="file"] {
+            display: none;
+        }
+        #editor-output-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 10px 20px;
+            gap: 10px;
+            overflow: hidden;
+        }
+        .CodeMirror {
+            height: 50%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #output {
+            flex: 1;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.5;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        #popup-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+            align-items: flex-end;
+        }
+        .popup {
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            color: #fff;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+            min-width: 200px;
+            text-align: center;
+        }
+        .popup.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #info-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #info-popup-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #info-popup {
+            width: 80%;
+            max-width: 700px;
+            height: 70%;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            animation: popupOpen 0.3s ease forwards;
+        }
+        #info-popup h2 {
+            margin: 0;
+            text-align: center;
+        }
+        #info-popup textarea {
+            flex: 1;
+            resize: none;
+            overflow-y: auto;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            background-color: rgba(0, 0, 0, 0.1);
+            color: inherit;
+            font-size: 0.95rem;
+            user-select: none;
+        }
+        #info-popup button {
+            align-self: center;
+            padding: 8px 18px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        #share-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #share-popup-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #share-popup {
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            animation: popupOpen 0.3s ease forwards;
+        }
+        #share-popup h2 {
+            margin: 0;
+            text-align: center;
+        }
+        #share-popup input {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+        #share-popup button {
+            align-self: center;
+            padding: 8px 18px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        #share-popup .share-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        @keyframes popupOpen {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes popupClose {
+            from { transform: scale(1); opacity: 1; }
+            to { transform: scale(0.9); opacity: 0; }
+        }
+        footer {
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 0.85rem;
+            border-top: 1px solid;
+            opacity: 0.75;
+            transition: color 0.3s ease, opacity 0.3s ease, border-color 0.3s ease;
+        }
+        footer:hover {
+            opacity: 1;
+        }
+        header, button, label.choose-file, select, .popup, footer {
+            user-select: none;
+        }
+        @media (max-width: 800px) {
+            #editor-output-container {
+                flex-direction: column;
+            }
+            .CodeMirror {
+                height: 50vh;
+            }
+            #controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            #share-popup {
+                width: 90%;
+                max-width: 90%;
+            }
+        }
+        textarea, pre, code, .editor, .cm-content, .cm-line {
+            font-family: 'Fira Code', 'JetBrains Mono', monospace !important;
+            font-variant-ligatures: none;
+            letter-spacing: 0;
+        }
+    </style>
+</head>
+<body id="body">
+    <header><strong>PyLoom</strong> - Python Web IDE</header>
+    <div id="controls">
+        <button onclick="runCode()">Run</button>
+        <button onclick="clearEditor()">Clear</button>
+        <input type="text" id="filename" placeholder="Enter filename (e.g., script.py)">
+        <button onclick="saveFile()">Save</button>
+        <label class="choose-file">Choose File<input type="file" id="uploadFile" onchange="uploadFile(event)"></label>
+        <select id="themeSelect" onchange="changeTheme(this.value)">
+            <option value="ambiance">Ambiance</option>
+            <option value="base16-dark">Base16 Dark</option>
+            <option value="base16-light">Base16 Light</option>
+            <option value="blackboard">Blackboard</option>
+            <option value="byte">Byte</option>
+            <option value="carbon">Carbon</option>
+            <option value="classic">Classic</option>
+            <option value="cyberpunk">Cyberpunk</option>
+            <option value="dracula">Dracula</option>
+            <option value="eclipse">Eclipse</option>
+            <option value="ether">Ether</option>
+            <option value="gruvbox">Gruvbox</option>
+            <option value="hacker">Hacker</option>
+            <option value="material">Material</option>
+            <option value="matrix">Matrix</option>
+            <option value="mdn-like">MDN Like</option>
+            <option value="midnight">Midnight</option>
+            <option value="monokai">Monokai</option>
+            <option value="nebula">Nebula</option>
+            <option value="nord">Nord</option>
+            <option value="paper">Paper</option>
+            <option value="polaris">Polaris</option>
+            <option value="solarized">Solarized</option>
+            <option value="tokyo-night">Tokyo Night</option>
+            <option value="vintage">Vintage</option>
+            <option value="zenburn">Zenburn</option>
+        </select>
+        <button onclick="openSharePopup()">Share</button>
+        <button onclick="openInfoPopup()">ℹ️</button>
+    </div>
+    <div id="editor-output-container">
+        <textarea id="editor">print("Hello, Python!")</textarea>
+        <div id="output">Output will appear here...</div>
+    </div>
+
+    <!-- Info Popup -->
+    <div id="info-popup-overlay">
+        <div id="info-popup">
+            <h2>PyLoom Features & Updates</h2>
+            <div id="info-text" style="flex:1; overflow-y:auto; padding:10px; border-radius:6px; background-color: rgba(0,0,0,0.1); color: inherit; font-family: inherit; white-space: pre-wrap;">
+                <strong>v1 [19.09.25]: </strong>- Python code execution in-browser - Responsive design
+                <strong>v2 [20.09.25]:</strong> - Multiple themes: Dracula, Monokai, Eclipse, etc. - Save and upload .py files - Auto-save to localStorage - Smooth popups and theme transitions
+                <strong>v3 [21.09.25]:</strong> - New themes (Matrix, Nord, Cyberpunk, Vintage, Midnight)
+                <strong>v4 [22.09.25]:</strong> - 5 additional custom themes: Nebula, Ether, Polaris, Byte, Classic
+                <strong>v5 [22.09.25]:</strong> - 5 additional custom themes: Carbon, Paper, Zenburn, Gruvbox, Tokyo Night
+                <strong>v6 [24.09.25]:</strong> - Share code via temporary links (expire after 24 hours)
+            </div>
+            <button onclick="closeInfoPopup()">Close</button>
+        </div>
+    </div>
+
+    <!-- Share Popup -->
+    <div id="share-popup-overlay">
+        <div id="share-popup">
+            <h2>Share Your Code</h2>
+            <p>Generate a temporary link to share your code. The link will expire after 24 hours.</p>
+            <input type="text" id="share-link" readonly placeholder="Share link will appear here...">
+            <div class="share-buttons">
+                <button onclick="generateShareLink()">Generate Link</button>
+                <button onclick="copyShareLink()">Copy Link</button>
+                <button onclick="closeSharePopup()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-container"></div>
+    <footer id="footer">© <span id="year"></span> <strong>PyLoom</strong> by <strong>@atif.a6z v6</strong></footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/mode/python/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+    <script>
+        // Database simulation using localStorage
+        const shareDB = {
+            // Generate a unique ID for sharing
+            generateId: function() {
+                return 'pyloom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            },
+            
+            // Save code with expiration (24 hours)
+            saveCode: function(code, theme) {
+                const id = this.generateId();
+                const expiration = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
+                
+                const shareData = {
+                    code: code,
+                    theme: theme,
+                    expiration: expiration
+                };
+                
+                localStorage.setItem('pyloom_share_' + id, JSON.stringify(shareData));
+                return id;
+            },
+            
+            // Retrieve code by ID (if not expired)
+            getCode: function(id) {
+                const key = 'pyloom_share_' + id;
+                const data = localStorage.getItem(key);
+                
+                if (!data) return null;
+                
+                const shareData = JSON.parse(data);
+                
+                // Check if expired
+                if (Date.now() > shareData.expiration) {
+                    localStorage.removeItem(key);
+                    return null;
+                }
+                
+                return shareData;
+            },
+            
+            // Clean up expired entries
+            cleanup: function() {
+                const prefix = 'pyloom_share_';
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith(prefix)) {
+                        try {
+                            const data = JSON.parse(localStorage.getItem(key));
+                            if (Date.now() > data.expiration) {
+                                localStorage.removeItem(key);
+                            }
+                        } catch (e) {
+                            // If data is corrupted, remove it
+                            localStorage.removeItem(key);
+                        }
+                    }
+                }
+            }
+        };
+
+        // Run cleanup on load
+        shareDB.cleanup();
+
+        const themes = {
+            dracula: {
+                bodyBg: "#1e1e2f",
+                text: "#e0e0e0",
+                controlBg: "#282a36",
+                buttonBg: "#6272a4",
+                buttonHover: "#50fa7b",
+                outputBg: "#282a36",
+                popupSuccess: "#50fa7b",
+                popupError: "#ff5555",
+                footerBorder: "#44475a",
+                font: "'Fira Code', monospace",
+                cmTheme: "dracula"
+            },
+            eclipse: {
+                bodyBg: "#ffffff",
+                text: "#000000",
+                controlBg: "#e0e0e0",
+                buttonBg: "#d1d1d1",
+                buttonHover: "#8ab4f8",
+                outputBg: "#f7f7f7",
+                popupSuccess: "#a0d468",
+                popupError: "#ed5565",
+                footerBorder: "#ccc",
+                font: "'Source Code Pro', monospace",
+                cmTheme: "eclipse"
+            },
+            monokai: {
+                bodyBg: "#272822",
+                text: "#f8f8f2",
+                controlBg: "#3e3d32",
+                buttonBg: "#75715e",
+                buttonHover: "#f92672",
+                outputBg: "#3e3d32",
+                popupSuccess: "#a6e22e",
+                popupError: "#f92672",
+                footerBorder: "#555",
+                font: "'JetBrains Mono', monospace",
+                cmTheme: "monokai"
+            },
+            solarized: {
+                bodyBg: "#fdf6e3",
+                text: "#657b83",
+                controlBg: "#eee8d5",
+                buttonBg: "#93a1a1",
+                buttonHover: "#2aa198",
+                outputBg: "#eee8d5",
+                popupSuccess: "#859900",
+                popupError: "#dc322f",
+                footerBorder: "#93a1a1",
+                font: "'Ubuntu Mono', monospace",
+                cmTheme: "solarized"
+            },
+            ambiance: {
+                bodyBg: "#2e2e2e",
+                text: "#f8f8f2",
+                controlBg: "#3e3d32",
+                buttonBg: "#75715e",
+                buttonHover: "#f92672",
+                outputBg: "#3e3d32",
+                popupSuccess: "#a6e22e",
+                popupError: "#f92672",
+                footerBorder: "#555",
+                font: "'Inconsolata', monospace",
+                cmTheme: "ambiance"
+            },
+            blackboard: {
+                bodyBg: "#2e2e2e",
+                text: "#f8f8f2",
+                controlBg: "#3e3d32",
+                buttonBg: "#75715e",
+                buttonHover: "#f92672",
+                outputBg: "#3e3d32",
+                popupSuccess: "#a6e22e",
+                popupError: "#f92672",
+                footerBorder: "#555",
+                font: "'Inconsolata', monospace",
+                cmTheme: "blackboard"
+            },
+            "base16-dark": {
+                bodyBg: "#181818",
+                text: "#d0d0d0",
+                controlBg: "#282828",
+                buttonBg: "#505050",
+                buttonHover: "#f0c674",
+                outputBg: "#282828",
+                popupSuccess: "#b5bd68",
+                popupError: "#cc6666",
+                footerBorder: "#444",
+                font: "'JetBrains Mono', monospace",
+                cmTheme: "base16-dark"
+            },
+            "base16-light": {
+                bodyBg: "#f5f5f5",
+                text: "#333333",
+                controlBg: "#e5e5e5",
+                buttonBg: "#d5d5d5",
+                buttonHover: "#81a2be",
+                outputBg: "#e5e5e5",
+                popupSuccess: "#8c9440",
+                popupError: "#cc6666",
+                footerBorder: "#aaa",
+                font: "'Source Code Pro', monospace",
+                cmTheme: "base16-light"
+            },
+            material: {
+                bodyBg: "#263238",
+                text: "#eceff1",
+                controlBg: "#37474f",
+                buttonBg: "#546e7a",
+                buttonHover: "#ffca28",
+                outputBg: "#37474f",
+                popupSuccess: "#4caf50",
+                popupError: "#f44336",
+                footerBorder: "#546e7a",
+                font: "'JetBrains Mono', monospace",
+                cmTheme: "material"
+            },
+            "mdn-like": {
+                bodyBg: "#ffffff",
+                text: "#000000",
+                controlBg: "#f0f0f0",
+                buttonBg: "#d0d0d0",
+                buttonHover: "#6c63ff",
+                outputBg: "#f7f7f7",
+                popupSuccess: "#00c853",
+                popupError: "#d50000",
+                footerBorder: "#ccc",
+                font: "'Fira Code', monospace",
+                cmTheme: "mdn-like"
+            },
+            hacker: {
+                bodyBg: "#000000",
+                text: "#00ff00",
+                controlBg: "#001100",
+                buttonBg: "#003300",
+                buttonHover: "#00ff66",
+                outputBg: "#000000",
+                popupSuccess: "#00ff00",
+                popupError: "#ff0033",
+                footerBorder: "#004400",
+                font: "'Share Tech Mono', monospace",
+                cmTheme: "dracula"
+            },
+            matrix: {
+                bodyBg: "#000000",
+                text: "#00ff41",
+                controlBg: "#001a00",
+                buttonBg: "#003300",
+                buttonHover: "#00ff88",
+                outputBg: "#000000",
+                popupSuccess: "#00ff41",
+                popupError: "#ff0055",
+                footerBorder: "#004d00",
+                font: "'VT323', monospace",
+                cmTheme: "dracula"
+            },
+            nord: {
+                bodyBg: "#2e3440",
+                text: "#d8dee9",
+                controlBg: "#3b4252",
+                buttonBg: "#434c5e",
+                buttonHover: "#88c0d0",
+                outputBg: "#3b4252",
+                popupSuccess: "#a3be8c",
+                popupError: "#bf616a",
+                footerBorder: "#4c566a",
+                font: "'Overpass Mono', monospace",
+                cmTheme: "material"
+            },
+            cyberpunk: {
+                bodyBg: "#0d0221",
+                text: "#ff00ff",
+                controlBg: "#1a0033",
+                buttonBg: "#330066",
+                buttonHover: "#00e5ff",
+                outputBg: "#1a0033",
+                popupSuccess: "#00e5ff",
+                popupError: "#ff004d",
+                footerBorder: "#660099",
+                font: "'Press Start 2P', monospace",
+                cmTheme: "dracula"
+            },
+            vintage: {
+                bodyBg: "#f4ecd8",
+                text: "#3b2f2f",
+                controlBg: "#e0d4b7",
+                buttonBg: "#c9b79c",
+                buttonHover: "#8b5e3c",
+                outputBg: "#e0d4b7",
+                popupSuccess: "#6b8e23",
+                popupError: "#8b0000",
+                footerBorder: "#a58d6f",
+                font: "'Courier Prime', monospace",
+                cmTheme: "eclipse"
+            },
+            midnight: {
+                bodyBg: "#0b0c10",
+                text: "#c5c6c7",
+                controlBg: "#1f2833",
+                buttonBg: "#2a3f54",
+                buttonHover: "#66fcf1",
+                outputBg: "#1f2833",
+                popupSuccess: "#45a29e",
+                popupError: "#ff4c4c",
+                footerBorder: "#45a29e",
+                font: "'Space Mono', monospace",
+                cmTheme: "material"
+            },
+            nebula: {
+                bodyBg: "#0b1220",
+                text: "#dbe9ff",
+                controlBg: "#0f2340",
+                buttonBg: "#1b3a70",
+                buttonHover: "#7ec8ff",
+                outputBg: "#081122",
+                popupSuccess: "#7ec8ff",
+                popupError: "#ff6b6b",
+                footerBorder: "#12304f",
+                font: "'Roboto Mono', monospace",
+                cmTheme: "material"
+            },
+            ether: {
+                bodyBg: "#f6f8fb",
+                text: "#141625",
+                controlBg: "#eef3fb",
+                buttonBg: "#d6e6ff",
+                buttonHover: "#4a6cf7",
+                outputBg: "#f0f5fb",
+                popupSuccess: "#4a8f5b",
+                popupError: "#d64545",
+                footerBorder: "#cfe1ff",
+                font: "'Anonymous Pro', monospace",
+                cmTheme: "mdn-like"
+            },
+            polaris: {
+                bodyBg: "#071E26",
+                text: "#CFECEB",
+                controlBg: "#0b2a34",
+                buttonBg: "#174650",
+                buttonHover: "#6fe3d8",
+                outputBg: "#071E26",
+                popupSuccess: "#6fe3d8",
+                popupError: "#ff6b6b",
+                footerBorder: "#0f484f",
+                font: "'PT Mono', monospace",
+                cmTheme: "dracula"
+            },
+            byte: {
+                bodyBg: "#0f1115",
+                text: "#e6f7ff",
+                controlBg: "#1b1f27",
+                buttonBg: "#263249",
+                buttonHover: "#9ad3ff",
+                outputBg: "#0f1115",
+                popupSuccess: "#9ad3ff",
+                popupError: "#ff7a7a",
+                footerBorder: "#243544",
+                font: "'M PLUS 1 Code', monospace",
+                cmTheme: "base16-dark"
+            },
+            classic: {
+                bodyBg: "#ffffff",
+                text: "#222222",
+                controlBg: "#fbfbfb",
+                buttonBg: "#e9e9e9",
+                buttonHover: "#666666",
+                outputBg: "#ffffff",
+                popupSuccess: "#2e7d32",
+                popupError: "#c62828",
+                footerBorder: "#ddd",
+                font: "'Major Mono Display', monospace",
+                cmTheme: "eclipse"
+            },
+            carbon: {
+                bodyBg: "#0f1113",
+                text: "#e6eef6",
+                controlBg: "#151617",
+                buttonBg: "#1f2326",
+                buttonHover: "#61dafb",
+                outputBg: "#0f1113",
+                popupSuccess: "#21ba45",
+                popupError: "#ff6b6b",
+                footerBorder: "#222222",
+                font: "'IBM Plex Mono', monospace",
+                cmTheme: "base16-dark"
+            },
+            paper: {
+                bodyBg: "#ffffff",
+                text: "#222222",
+                controlBg: "#fafafa",
+                buttonBg: "#f0f0f0",
+                buttonHover: "#4285f4",
+                outputBg: "#ffffff",
+                popupSuccess: "#34a853",
+                popupError: "#ea4335",
+                footerBorder: "#e0e0e0",
+                font: "'Roboto Mono', monospace",
+                cmTheme: "base16-light"
+            },
+            zenburn: {
+                bodyBg: "#3f3f3f",
+                text: "#dcdccc",
+                controlBg: "#4f4f4f",
+                buttonBg: "#6f6f6f",
+                buttonHover: "#8faf9f",
+                outputBg: "#4f4f4f",
+                popupSuccess: "#7f9f7f",
+                popupError: "#cc9393",
+                footerBorder: "#5f5f5f",
+                font: "'Anonymous Pro', monospace",
+                cmTheme: "ambiance"
+            },
+            gruvbox: {
+                bodyBg: "#282828",
+                text: "#ebdbb2",
+                controlBg: "#3c3836",
+                buttonBg: "#504945",
+                buttonHover: "#fabd2f",
+                outputBg: "#3c3836",
+                popupSuccess: "#b8bb26",
+                popupError: "#fb4934",
+                footerBorder: "#665c54",
+                font: "'Cousine', monospace",
+                cmTheme: "monokai"
+            },
+            "tokyo-night": {
+                bodyBg: "#1a1b26",
+                text: "#c0caf5",
+                controlBg: "#24283b",
+                buttonBg: "#292e42",
+                buttonHover: "#7aa2f7",
+                outputBg: "#24283b",
+                popupSuccess: "#9ece6a",
+                popupError: "#f7768e",
+                footerBorder: "#414868",
+                font: "'Nova Mono', monospace",
+                cmTheme: "material"
+            },
+        };
+
+        const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+            lineNumbers: true,
+            mode: "python",
+            theme: "dracula",
+            indentUnit: 4,
+            tabSize: 4
+        });
+
+        // Check for shared code on page load
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareId = urlParams.get('share');
+            
+            if (shareId) {
+                loadSharedCode(shareId);
+            }
+        });
+
+        // Load shared code function
+        function loadSharedCode(shareId) {
+            const shareData = shareDB.getCode(shareId);
+            
+            if (shareData) {
+                editor.setValue(shareData.code);
+                if (shareData.theme && themes[shareData.theme]) {
+                    changeTheme(shareData.theme);
+                }
+                showPopup("Shared code loaded successfully!", "success", 5);
+            } else {
+                showPopup("Share link has expired or is invalid", "error", 5);
+            }
+        }
+
+        // Share functionality
+        function openSharePopup() {
+            const overlay = document.getElementById("share-popup-overlay");
+            overlay.classList.add("show");
+            const popup = document.getElementById("share-popup");
+            popup.style.animation = 'popupOpen 0.3s forwards';
+            document.getElementById("share-link").value = "";
+        }
+
+        function closeSharePopup() {
+            const popup = document.getElementById("share-popup");
+            popup.style.animation = 'popupClose 0.3s forwards';
+            setTimeout(() => document.getElementById("share-popup-overlay").classList.remove("show"), 300);
+        }
+
+        function generateShareLink() {
+            const code = editor.getValue();
+            const currentTheme = document.getElementById("themeSelect").value;
+            
+            if (!code.trim()) {
+                showPopup("Cannot share empty code", "error", 3);
+                return;
+            }
+            
+            const shareId = shareDB.saveCode(code, currentTheme);
+            const shareUrl = window.location.origin + window.location.pathname + '?share=' + shareId;
+            
+            document.getElementById("share-link").value = shareUrl;
+            showPopup("Share link generated! It will expire in 24 hours.", "success", 5);
+        }
+
+        function copyShareLink() {
+            const shareLink = document.getElementById("share-link");
+            
+            if (!shareLink.value) {
+                showPopup("Generate a link first", "error", 3);
+                return;
+            }
+            
+            shareLink.select();
+            shareLink.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                navigator.clipboard.writeText(shareLink.value).then(function() {
+                    showPopup("Link copied to clipboard!", "success", 3);
+                }, function() {
+                    // Fallback for older browsers
+                    document.execCommand("copy");
+                    showPopup("Link copied to clipboard!", "success", 3);
+                });
+            } catch (err) {
+                // Final fallback
+                document.execCommand("copy");
+                showPopup("Link copied to clipboard!", "success", 3);
+            }
+        }
+
+        // Rest of the existing functions
+        const savedCode = localStorage.getItem("pyloom-editor-code");
+        if (savedCode !== null) editor.setValue(savedCode);
+        
+        editor.on("change", () => {
+            localStorage.setItem("pyloom-editor-code", editor.getValue());
+        });
+
+        const savedTheme = localStorage.getItem("pyloom-editor-theme") || "dracula";
+        const initialTheme = themes[savedTheme] ? savedTheme : "dracula";
+        editor.setOption("theme", themes[initialTheme].cmTheme || initialTheme);
+        applyTheme(initialTheme);
+        document.getElementById("themeSelect").value = initialTheme;
+
+        let runAttempts = 0, clearAttempts = 0;
+
+        function applyTheme(theme) {
+            const t = themes[theme];
+            if (!t) return;
+            
+            document.body.style.backgroundColor = t.bodyBg;
+            document.body.style.color = t.text;
+            document.getElementById("controls").style.backgroundColor = t.controlBg;
+            document.getElementById("output").style.backgroundColor = t.outputBg;
+            document.getElementById("output").style.color = t.text;
+            document.getElementById("output").style.fontFamily = t.font;
+            
+            const footer = document.querySelector("footer");
+            footer.style.borderTopColor = t.footerBorder;
+            footer.style.color = t.text;
+            footer.style.fontFamily = t.font;
+            
+            const buttons = document.querySelectorAll("button,label.choose-file,select");
+            buttons.forEach(b => {
+                b.style.background = t.buttonBg;
+                b.style.color = t.text;
+                b.style.fontFamily = t.font;
+            });
+            
+            const infoPopup = document.getElementById("info-popup");
+            infoPopup.style.backgroundColor = t.controlBg;
+            infoPopup.style.color = t.text;
+            infoPopup.style.fontFamily = t.font;
+            document.getElementById("info-text").style.fontFamily = t.font;
+            
+            const sharePopup = document.getElementById("share-popup");
+            sharePopup.style.backgroundColor = t.controlBg;
+            sharePopup.style.color = t.text;
+            sharePopup.style.fontFamily = t.font;
+            
+            // CodeMirror editor background & font
+            const editorWrapper = editor.getWrapperElement();
+            editorWrapper.style.backgroundColor = t.outputBg;
+            editorWrapper.style.color = t.text;
+            editor.getScrollerElement().style.backgroundColor = t.outputBg;
+            editor.getScrollerElement().style.color = t.text;
+            
+            const cmDisplay = editor.getWrapperElement().querySelector('.CodeMirror-code');
+            if (cmDisplay) cmDisplay.style.fontFamily = t.font;
+            editor.refresh();
+        }
+
+        function changeTheme(theme) {
+            if (!themes[theme]) return;
+            const cmTheme = themes[theme].cmTheme || theme;
+            editor.setOption("theme", cmTheme);
+            applyTheme(theme);
+            document.getElementById("themeSelect").value = theme;
+            localStorage.setItem("pyloom-editor-theme", theme);
+            showPopup(`Theme changed to ${formatThemeName(theme)}`, "success", 3);
+        }
+
+        function formatThemeName(themeKey) {
+            return themeKey.split("-").map(word => {
+                if (word.length <= 3) return word.toUpperCase();
+                return word.charAt(0).toUpperCase() + word.slice(1);
+            }).join(" ");
+        }
+
+        function outf(text) {
+            document.getElementById("output").innerHTML += text + "<br>";
+        }
+
+        function runCode() {
+            document.getElementById("output").innerHTML = "";
+            Sk.configure({ output: outf, read: builtinRead });
+            const code = editor.getValue();
+            let hadError = false;
+            
+            Sk.misceval.asyncToPromise(() => Sk.importMainWithBody("<stdin>", false, code))
+                .then(() => {
+                    runAttempts++;
+                    if (!hadError) showPopup(`Code executed (attempt #${runAttempts})`, "success", 3);
+                })
+                .catch(err => {
+                    hadError = true;
+                    runAttempts++;
+                    document.getElementById("output").innerHTML += `<span style="color:#ff5555;">${err}</span>`;
+                    showPopup(`Execution error (attempt #${runAttempts})`, "error", 4);
+                });
+        }
+
+        function builtinRead(x) {
+            if (!Sk.builtinFiles || !Sk.builtinFiles["files"][x]) throw "File not found: '" + x + "'";
+            return Sk.builtinFiles["files"][x];
+        }
+
+        function clearEditor() {
+            editor.setValue("");
+            document.getElementById("output").innerHTML = "";
+            clearAttempts++;
+            showPopup(`Code cleared (attempt #${clearAttempts})`, "success", 3);
+        }
+
+        function saveFile() {
+            let filename = document.getElementById("filename").value.trim();
+            if (!filename) filename = "script.py";
+            else if (!filename.endsWith(".py")) filename += ".py";
+            
+            const blob = new Blob([editor.getValue()], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+            showPopup(`Code saved as '${filename}'!`, "success", 3);
+        }
+
+        function showPopup(message, type = "success", duration = 3) {
+            const container = document.getElementById("popup-container");
+            const currentTheme = document.getElementById("themeSelect").value;
+            const popup = document.createElement("div");
+            popup.classList.add("popup");
+            popup.style.backgroundColor = type === "error" ? themes[currentTheme].popupError : themes[currentTheme].popupSuccess;
+            popup.style.fontFamily = themes[currentTheme].font;
+            
+            let countdown = duration;
+            popup.textContent = `${message} (${countdown})`;
+            container.appendChild(popup);
+            
+            requestAnimationFrame(() => popup.classList.add("show"));
+            
+            const interval = setInterval(() => {
+                countdown--;
+                popup.textContent = `${message} (${countdown})`;
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    popup.classList.remove("show");
+                    setTimeout(() => popup.remove(), 500);
+                }
+            }, 1000);
+        }
+
+        function uploadFile(event) {
+            const file = event.target.files[0];
+            event.target.value = "";
+            if (!file) return;
+            
+            if (!file.name.endsWith(".py")) {
+                showPopup("Not a .py file", "error", 3);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                editor.setValue(e.target.result);
+                editor.refresh();
+                showPopup(`Successful upload of [${file.name}]!`, "success", 3);
+            }
+            reader.readAsText(file);
+        }
+
+        function openInfoPopup() {
+            const overlay = document.getElementById("info-popup-overlay");
+            overlay.classList.add("show");
+            const popup = document.getElementById("info-popup");
+            popup.style.animation = 'popupOpen 0.3s forwards';
+        }
+
+        function closeInfoPopup() {
+            const popup = document.getElementById("info-popup");
+            popup.style.animation = 'popupClose 0.3s forwards';
+            setTimeout(() => document.getElementById("info-popup-overlay").classList.remove("show"), 300);
+        }
+
+        document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
